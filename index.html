@@ -3,1415 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大模型训练原理 · 从宏观到微观全图解</title>
+    <title>📚 我的学习资料库</title>
     <style>
-        /* ----- 全局重置 & 主题 ----- */
+        /* 全局重置与字体 */
         * {
-            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #0b0e14;
-            color: #e6edf3;
-            padding: 24px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            padding: 40px 20px;
+            background-image: radial-gradient(circle at 10% 20%, rgba(216, 241, 230, 0.4) 0%, transparent 50%);
         }
-        .wrapper {
-            max-width: 1300px;
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* 标题区 */
-        .header {
-            margin-bottom: 32px;
-            border-bottom: 1px solid #2d3642;
-            padding-bottom: 18px;
+        /* 头部区域 */
+        header {
+            margin-bottom: 40px;
+            text-align: center;
         }
-        .header h1 {
-            font-weight: 300;
-            font-size: 2.2rem;
-            background: linear-gradient(135deg, #79c0ff, #a5d8ff);
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #1a202c;
+            letter-spacing: -0.5px;
+        }
+        header h1 span {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            display: inline-block;
         }
-        .header .sub {
-            color: #8b949e;
-            font-size: 1rem;
-            margin-top: 4px;
-            border-left: 3px solid #3d8bff;
-            padding-left: 16px;
-            opacity: 0.85;
+        header p {
+            color: #4a5568;
+            font-size: 1.2rem;
+            margin-top: 8px;
+            opacity: 0.8;
         }
 
-        /* 通用卡片 */
-        .card {
-            background: #151b23;
-            border-radius: 20px;
-            border: 1px solid #2d3642;
-            padding: 24px 28px;
-            margin-bottom: 32px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        }
-        .card-title {
-            font-weight: 400;
-            font-size: 1.4rem;
-            color: #e6edf3;
-            margin-bottom: 6px;
+        /* 搜索框 */
+        .search-box {
+            margin-bottom: 40px;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            justify-content: center;
         }
-        .card-title .badge {
-            background: #2d3642;
-            font-size: 0.7rem;
-            padding: 2px 14px;
-            border-radius: 40px;
-            color: #8b949e;
-            font-weight: 400;
+        .search-box input {
+            width: 100%;
+            max-width: 600px;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            font-size: 1rem;
+            color: #2d3748;
+            outline: 2px solid transparent;
+            transition: all 0.3s ease;
         }
-        .card-desc {
-            color: #b1c4d9;
-            font-size: 0.95rem;
-            line-height: 1.7;
-            margin-bottom: 18px;
-            border-left: 2px solid #3d8bff;
-            padding-left: 16px;
-            opacity: 0.9;
+        .search-box input:focus {
+            outline: 2px solid #667eea;
+            background: #ffffff;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
         }
-        .card-desc strong {
-            color: #79c0ff;
+        .search-box input::placeholder {
+            color: #a0aec0;
         }
 
-        /* 网格布局 */
-        .grid-2 {
+        /* 统计信息 */
+        .stats {
+            text-align: right;
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        /* 卡片网格 */
+        .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 24px;
         }
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
 
-        /* Canvas 容器 */
-        .canvas-wrap {
-            background: #0d121c;
-            border-radius: 14px;
-            border: 1px solid #2d3642;
-            overflow: hidden;
-            padding: 6px;
-        }
-        .canvas-wrap canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            aspect-ratio: 1 / 0.9;
-            background: #0d121c;
-        }
-        .canvas-wrap.macro-canvas canvas {
-            aspect-ratio: 1 / 1;
-        }
-
-        /* 控制按钮组 */
-        .ctrl-group {
+        /* 单个资料卡片 */
+        .card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px 16px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid #2d3642;
+            flex-direction: column;
         }
-        .ctrl-group button {
-            background: #2d3642;
-            border: none;
-            color: #e6edf3;
-            padding: 6px 20px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.15s;
-            border: 1px solid transparent;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.95);
         }
-        .ctrl-group button:hover:not(:disabled) {
-            background: #3d8bff;
-            border-color: #79c0ff;
-            box-shadow: 0 0 20px rgba(61, 139, 255, 0.25);
-        }
-        .ctrl-group button:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .ctrl-group label {
+
+        /* 卡片头部（图标+分类标签） */
+        .card-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: #b1c4d9;
-            font-size: 0.85rem;
-        }
-        .ctrl-group input[type="range"] {
-            width: 80px;
-            height: 4px;
-            -webkit-appearance: none;
-            background: #2d3642;
-            border-radius: 4px;
-            outline: none;
-        }
-        .ctrl-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #3d8bff;
-            cursor: pointer;
-        }
-        .status-badge {
-            color: #8b949e;
-            font-size: 0.8rem;
-            margin-left: auto;
-            font-variant-numeric: tabular-nums;
-        }
-        .status-badge span {
-            color: #e6edf3;
-            font-weight: 500;
-        }
-
-        /* 文字解释区块 */
-        .concept-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 12px;
-        }
-        .concept-item {
-            background: #1c2330;
-            border-radius: 14px;
-            padding: 16px 18px;
-            border-left: 4px solid #3d8bff;
-        }
-        .concept-item h4 {
-            color: #79c0ff;
-            font-weight: 500;
-            font-size: 1rem;
-            margin-bottom: 6px;
-        }
-        .concept-item p,
-        .concept-item li {
-            color: #b1c4d9;
-            font-size: 0.9rem;
-            line-height: 1.7;
-        }
-        .concept-item ul {
-            padding-left: 18px;
-            margin: 4px 0;
-        }
-        .concept-item .highlight {
-            color: #ffb347;
-            font-family: 'Courier New', monospace;
-            background: #0d121c;
-            padding: 0 6px;
-            border-radius: 4px;
-        }
-        .concept-item .green {
-            color: #7ee787;
-        }
-        .concept-item .red {
-            color: #ff7b72;
-        }
-
-        .formula-block {
-            background: #0d121c;
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            color: #ffb347;
-            border-left: 3px solid #ffb347;
-            margin: 8px 0;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        /* 微观步骤面板 */
-        .micro-step-panel {
-            background: #1c2330;
-            border-radius: 14px;
-            padding: 16px 20px;
-            border: 1px solid #2d3642;
-            min-height: 160px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .micro-step-panel::-webkit-scrollbar {
-            width: 4px;
-        }
-        .micro-step-panel::-webkit-scrollbar-track {
-            background: #0d121c;
-        }
-        .micro-step-panel::-webkit-scrollbar-thumb {
-            background: #3d8bff;
-            border-radius: 4px;
-        }
-        .micro-step-panel h4 {
-            font-weight: 500;
-            color: #79c0ff;
-            font-size: 1rem;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .micro-step-panel h4 .tag {
-            background: #2d3642;
-            padding: 0 12px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            color: #8b949e;
-            font-weight: 400;
-        }
-        .micro-step-panel p {
-            color: #b1c4d9;
-            font-size: 0.9rem;
-            line-height: 1.7;
-        }
-        .micro-step-panel .insight-box {
-            background: #1a2633;
-            border-left: 3px solid #3d8bff;
-            padding: 8px 14px;
-            border-radius: 6px;
-            margin: 8px 0 4px 0;
-            font-size: 0.85rem;
-            color: #b1c4d9;
-        }
-        .micro-step-panel .insight-box strong {
-            color: #79c0ff;
-        }
-        .micro-step-panel .value-grid-mini {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 16px;
-            background: #0d121c;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
-        .micro-step-panel .value-grid-mini .item {
-            display: flex;
             justify-content: space-between;
-            font-size: 0.8rem;
-            color: #8b949e;
-            border-bottom: 1px dashed #1c2330;
-            padding: 2px 0;
+            margin-bottom: 12px;
         }
-        .micro-step-panel .value-grid-mini .item .num {
-            color: #e6edf3;
-            font-family: 'Courier New', monospace;
-            font-weight: 500;
+        .card-icon {
+            font-size: 2rem;
+            line-height: 1;
         }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #2d3642;
-            border-radius: 4px;
-            margin: 12px 0 4px 0;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3d8bff, #7ee787);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            width: 0%;
+        .card-category {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.15);
         }
 
-        /* 图例 */
-        .legend {
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+        .card-desc {
+            font-size: 0.95rem;
+            color: #4a5568;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            flex-grow: 1;
+        }
+
+        /* 卡片底部（日期 + 链接） */
+        .card-footer {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px 20px;
-            font-size: 0.75rem;
-            color: #8b949e;
-            padding-top: 10px;
-            margin-top: 4px;
-            border-top: 1px solid #2d3642;
-        }
-        .legend span {
-            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            border-top: 1px solid #edf2f7;
+            padding-top: 14px;
+            margin-top: 4px;
         }
-        .legend .dot {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 4px;
+        .card-date {
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+        .card-link {
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.08);
+            padding: 6px 16px;
+            border-radius: 30px;
+            transition: background 0.2s;
+        }
+        .card-link:hover {
+            background: #667eea;
+            color: #fff;
         }
 
-        @media (max-width: 900px) {
-            .grid-2,
-            .grid-3,
-            .concept-grid {
+        /* 空状态（搜索无结果） */
+        .no-result {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 0;
+            color: #a0aec0;
+            font-size: 1.2rem;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            .grid {
                 grid-template-columns: 1fr;
-            }
-            .card {
-                padding: 16px;
-            }
-            .header h1 {
-                font-size: 1.6rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <!-- ======== 头部 ======== -->
-        <div class="header">
-            <h1>🧠 大模型训练原理 · 从宏观到微观全图解</h1>
-            <div class="sub">
-                适合新人复习与分享 · 包含宏观迭代演示 + 微观单步拆解 + 核心概念注解
-            </div>
+    <div class="container">
+        <header>
+            <h1>📖 <span>知识库</span> 目录</h1>
+            <p>所有学习资料开放共享 · 点击卡片即可查阅</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 搜索资料标题、描述或分类..." oninput="filterCards()">
         </div>
 
-        <!-- ============================================================ -->
-        <!-- 第一部分：宏观训练过程（迭代拟合） -->
-        <!-- ============================================================ -->
-        <div class="card">
-            <div class="card-title">
-                📈 宏观视角 · 多次迭代训练过程
-                <span class="badge">损失下降 &amp; 曲线拟合</span>
-            </div>
-            <div class="card-desc">
-                这个演示展示了一个小型神经网络（1输入→8隐藏→1输出）在 <strong>数百次迭代</strong> 中的宏观表现。
-                你可以看到 <strong class="red">损失（Loss）</strong> 从高处逐渐下降，同时 <strong class="red">红色预测曲线</strong> 不断调整，
-                最终拟合 <strong class="green">蓝色数据点</strong>。这代表模型“学习”的整体趋势。
-            </div>
-
-            <div class="grid-3">
-                <!-- 网络结构图 -->
-                <div class="canvas-wrap macro-canvas">
-                    <canvas id="macroNetCanvas" width="400" height="400"></canvas>
-                </div>
-                <!-- 损失曲线 -->
-                <div class="canvas-wrap macro-canvas">
-                    <canvas id="macroLossCanvas" width="400" height="400"></canvas>
-                </div>
-                <!-- 拟合曲线 -->
-                <div class="canvas-wrap macro-canvas">
-                    <canvas id="macroFitCanvas" width="400" height="400"></canvas>
-                </div>
-            </div>
-
-            <div class="ctrl-group">
-                <button id="macroBtnStart">▶ 训练</button>
-                <button id="macroBtnReset">⟲ 重置</button>
-                <label>
-                    速度
-                    <input type="range" id="macroSpeed" min="1" max="20" value="5">
-                    <span id="macroSpeedLabel">5</span>
-                </label>
-                <div class="status-badge">
-                    迭代: <span id="macroIter">0</span> &nbsp;|&nbsp; 损失: <span id="macroLoss">—</span>
-                </div>
-            </div>
-            <div class="legend">
-                <span><span class="dot" style="background:#4c9aff;"></span> 真实数据点</span>
-                <span><span class="dot" style="background:#ff7b72;"></span> 预测曲线</span>
-                <span><span class="dot" style="background:#3d8bff;"></span> 损失曲线</span>
-                <span><span class="dot" style="background:#ffb347;"></span> 权重连线（颜色越亮值越大）</span>
-            </div>
+        <div class="stats">
+            共 <span id="totalCount">0</span> 份资料
         </div>
 
-        <!-- ============================================================ -->
-        <!-- 第二部分：核心概念文字解释 -->
-        <!-- ============================================================ -->
-        <div class="card">
-            <div class="card-title">
-                📖 核心概念 · 训练背后的数学逻辑
-                <span class="badge">必读</span>
-            </div>
-            <div class="concept-grid">
-                <!-- 概念 1：参数量 -->
-                <div class="concept-item">
-                    <h4>① 参数量（70亿个数字）是什么？</h4>
-                    <p>
-                        <strong>模型参数</strong> 是网络在训练中学到的<strong>权重（Weights）</strong>和<strong>偏置（Biases）</strong>。
-                        它们与编程中的“函数参数”完全不同：
-                    </p>
-                    <ul>
-                        <li><strong>编程参数</strong>：是你调用函数时传入的 <span class="highlight">临时输入</span>（如 <code>add(1,2)</code> 中的 1 和 2）。</li>
-                        <li><strong>模型参数</strong>：是模型自身的 <span class="highlight">固有记忆</span>，在训练中固定下来（如 <code>w1=0.4</code>）。</li>
-                    </ul>
-                    <p style="margin-top:6px;">
-                        <span class="highlight">7B</span> 就代表有 70 亿个这样的权重数字，它们共同决定了模型的“智商”。
-                    </p>
-                </div>
-                <!-- 概念 2：训练四部曲 -->
-                <div class="concept-item">
-                    <h4>② 70亿个数字是如何“炼”成的？</h4>
-                    <p>每次迭代都遵循固定的 <strong>四步循环</strong>：</p>
-                    <ul>
-                        <li><span style="color:#4c9aff;">前向传播</span>：数据流入，算出预测值。</li>
-                        <li><span style="color:#ff7b72;">计算损失</span>：对比预测与真实值，算出差距（Loss）。</li>
-                        <li><span style="color:#ffb347;">反向传播</span>：从输出倒推，计算每个权重的 <strong>梯度</strong>（应调整的方向和力度）。</li>
-                        <li><span style="color:#7ee787;">梯度下降</span>：沿梯度反方向移动一小步，更新所有权重。</li>
-                    </ul>
-                    <p style="margin-top:6px;">
-                        这个过程重复 <strong>数万亿次</strong>，初始的随机数才被“雕刻”成智能参数。
-                    </p>
-                </div>
-                <!-- 概念 3：激活函数 Tanh -->
-                <div class="concept-item">
-                    <h4>③ 激活函数（Tanh）有什么用？</h4>
-                    <p>
-                        <span class="highlight">Tanh</span> 是一个“非线性阀门”，将输入压缩到 <strong>[-1, 1]</strong> 之间。
-                    </p>
-                    <ul>
-                        <li><strong>为什么需要它？</strong> 没有非线性，多层网络等价于一层线性变换，无法解决复杂问题。</li>
-                        <li><strong>公式</strong>：<code>tanh(x) = (eˣ - e⁻ˣ) / (eˣ + e⁻ˣ)</code></li>
-                    </ul>
-                    <div class="formula-block" style="font-size:0.8rem;">
-                        例：tanh(0.42) = 0.397 &nbsp;|&nbsp; tanh(10) ≈ 1.0（饱和）
-                    </div>
-                </div>
-                <!-- 概念 4：学习率 & 初始化 -->
-                <div class="concept-item">
-                    <h4>④ 学习率（η）与权重初始化</h4>
-                    <p>
-                        <span class="highlight">学习率</span> 是人为设定的“步长”，控制每次更新走多远：
-                    </p>
-                    <ul>
-                        <li><span class="red">太大</span>（如 1.0）：震荡甚至发散。</li>
-                        <li><span class="green">太小</span>（如 0.001）：收敛极慢。</li>
-                        <li>演示中用 <span class="highlight">η=0.2</span> 作为折中。</li>
-                    </ul>
-                    <p style="margin-top:6px;">
-                        <span class="highlight">权重初始化</span>：真实训练中从 <strong>随机分布</strong> 采样（如Xavier），
-                        避免所有神经元学成一样。演示中的 <code>w1=0.4</code> 等是手动指定，为了产生明显误差方便观察。
-                    </p>
-                </div>
-                <!-- 概念 5：梯度同时更新 -->
-                <div class="concept-item">
-                    <h4>⑤ 为什么所有梯度 <span class="green">同时</span> 更新？</h4>
-                    <p>
-                        反向传播时，所有梯度（<span class="highlight">∇w1, ∇w2, ...</span>）都是基于 <strong>更新前的旧权重</strong>
-                        一次性算出的。
-                    </p>
-                    <ul>
-                        <li><strong>必须同时更新</strong>：如果顺序更新（先改 w1 再算 w2 的梯度），数学推导会失效。</li>
-                        <li>这就像同时拧动多个旋钮，每个旋钮的调整量基于<strong>当前统一状态</strong>计算。</li>
-                    </ul>
-                </div>
-                <!-- 概念 6：偏置梯度不同 -->
-                <div class="concept-item">
-                    <h4>⑥ 为什么偏置（b）的梯度不同？</h4>
-                    <p>
-                        以演示中的 <span class="highlight">∇b1, ∇b2, ∇b3</span> 为例：
-                    </p>
-                    <ul>
-                        <li><span class="red">∇b3</span> = 输出误差（因为输出层 <code>y = ... + b3</code>）。</li>
-                        <li><span class="red">∇b1</span> = 输出误差 × w3 × tanh'(z1)（受 <strong>w3</strong> 和 <strong>激活值</strong> 影响）。</li>
-                        <li><span class="red">∇b2</span> = 输出误差 × w4 × tanh'(z2)（受 <strong>w4</strong> 和 <strong>激活值</strong> 影响）。</li>
-                    </ul>
-                    <p style="margin-top:6px;">
-                        因为 <code>w3 ≠ w4</code> 且 <code>a1 ≠ a2</code>，所以梯度自然不同。
-                        <span class="green">未使用的参数（如 b4）梯度为 0</span>。
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 第三部分：微观单次迭代（四步拆解） -->
-        <!-- ============================================================ -->
-        <div class="card">
-            <div class="card-title">
-                🔬 微观视角 · 单次迭代的完整内幕
-                <span class="badge">前向 → 损失 → 反向 → 更新</span>
-            </div>
-            <div class="card-desc">
-                这个演示固定在一个样本（<strong>x=0.80, y_true=0.30</strong>）上，让你一步一步观察
-                <strong>前向传播（蓝色）→ 损失计算（红色）→ 反向传播（橙色）→ 梯度下降更新（绿色）</strong>
-                的详细数值变化。右侧面板同步显示计算过程和原理注解。
-            </div>
-
-            <div class="grid-2">
-                <!-- 左侧 网络图 -->
-                <div>
-                    <div class="canvas-wrap">
-                        <canvas id="microNetCanvas" width="600" height="500"></canvas>
-                    </div>
-                    <div class="progress-bar"><div class="fill" id="microProgressFill" style="width:0%"></div></div>
-                    <div class="legend" style="border-top:1px solid #2d3642; margin-top:10px;">
-                        <span><span class="dot" style="background:#4c9aff;"></span> 前向传播</span>
-                        <span><span class="dot" style="background:#ff7b72;"></span> 损失计算</span>
-                        <span><span class="dot" style="background:#ffb347;"></span> 反向传播</span>
-                        <span><span class="dot" style="background:#7ee787;"></span> 梯度下降更新</span>
-                    </div>
-                </div>
-
-                <!-- 右侧 信息面板 -->
-                <div>
-                    <div class="micro-step-panel" id="microStepDesc">
-                        <h4>📌 准备就绪 <span class="tag">步骤 0 / 4</span></h4>
-                        <p>点击下方按钮，逐步观察一次完整的训练迭代。</p>
-                        <div class="value-grid-mini">
-                            <div class="item"><span>输入 x</span><span class="num">0.80</span></div>
-                            <div class="item"><span>目标 y_true</span><span class="num">0.30</span></div>
-                            <div class="item"><span>当前损失</span><span class="num" id="microDispLoss">—</span></div>
-                            <div class="item"><span>学习率 η</span><span class="num">0.20</span></div>
-                        </div>
-                    </div>
-
-                    <div class="ctrl-group">
-                        <button id="microBtnPrev" disabled>◀ 上一步</button>
-                        <button id="microBtnNext">下一步 ▶</button>
-                        <button id="microBtnAuto">▶ 自动演示</button>
-                        <button id="microBtnReset">⟲ 重置</button>
-                        <span class="status-badge" id="microStepIndicator">步骤 0 / 4</span>
-                    </div>
-                    <div style="font-size:0.8rem; color:#8b949e; margin-top:10px; padding-top:8px; border-top:1px solid #2d3642;">
-                        💡 点击“下一步”观察每一步的数值变化与公式推导
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 页脚 -->
-        <!-- ============================================================ -->
-        <div style="text-align:center; color:#8b949e; font-size:0.85rem; padding:20px 0 10px 0; border-top:1px solid #2d3642;">
-            🧠 大模型训练原理 · 从宏观到微观全图解  &nbsp;|&nbsp; 适用于新人学习与复习分享
+        <div class="grid" id="cardGrid">
+            <!-- 卡片会由 JavaScript 动态生成 -->
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- ================ JavaScript 区块 ================ -->
-    <!-- ============================================================ -->
     <script>
-        // ================================================================
-        // 第一部分：宏观训练脚本 (完全隔离)
-        // ================================================================
-        (function() {
-            // ---- 配置 ----
-            const INPUT_DIM = 1,
-                HIDDEN_DIM = 8,
-                OUTPUT_DIM = 1;
-            const LR = 0.15;
-            const TRAIN_SAMPLES = 40;
+        // ============================================================
+        // 📌 重点：在这里配置你的所有学习资料（根据你的实际文件修改）
+        // ============================================================
+        const data = [
+            {
+                title: "大模型训练原理",
+                desc: "大模型训练原理-从宏观到微观全图解",
+                category: "笔记",
+                icon: "📘",
+                date: "2026-07-04",
+                url: "./大模型训练原理-从宏观到微观全图解.html"   // 替换为你的真实文件路径
+            },
+        ];
 
-            // ---- 数据生成 ----
-            function generateData(n) {
-                const data = [];
-                for (let i = 0; i < n; i++) {
-                    const x = (Math.random() * 2 - 1) * 1.2;
-                    const y = Math.sin(x * 2.5) * 0.8 + 0.2 * Math.cos(x * 5) + (Math.random() - 0.5) * 0.15;
-                    data.push({ x, y });
-                }
-                return data;
-            }
-            let trainData = generateData(TRAIN_SAMPLES);
+        // ---------- 渲染与搜索逻辑 (不需要修改) ----------
+        const grid = document.getElementById('cardGrid');
+        const totalSpan = document.getElementById('totalCount');
+        let currentData = [...data];
 
-            // ---- 神经网络 ----
-            class NeuralNet {
-                constructor() {
-                    this.w1 = new Array(INPUT_DIM * HIDDEN_DIM).fill(0).map(() => (Math.random() - 0.5) * Math.sqrt(2 /
-                    INPUT_DIM));
-                    this.b1 = new Array(HIDDEN_DIM).fill(0).map(() => (Math.random() - 0.5) * 0.1);
-                    this.w2 = new Array(HIDDEN_DIM * OUTPUT_DIM).fill(0).map(() => (Math.random() - 0.5) * Math.sqrt(2 /
-                    HIDDEN_DIM));
-                    this.b2 = new Array(OUTPUT_DIM).fill(0).map(() => (Math.random() - 0.5) * 0.1);
-                }
-                forward(x) {
-                    const h = new Array(HIDDEN_DIM);
-                    for (let j = 0; j < HIDDEN_DIM; j++) {
-                        let sum = this.b1[j];
-                        for (let i = 0; i < INPUT_DIM; i++) sum += this.w1[i * HIDDEN_DIM + j] * x[i];
-                        h[j] = Math.tanh(sum);
-                    }
-                    const out = new Array(OUTPUT_DIM);
-                    for (let k = 0; k < OUTPUT_DIM; k++) {
-                        let sum = this.b2[k];
-                        for (let j = 0; j < HIDDEN_DIM; j++) sum += this.w2[j * OUTPUT_DIM + k] * h[j];
-                        out[k] = sum;
-                    }
-                    return { h, out };
-                }
-                backward(x, yTrue) {
-                    const { h, out } = this.forward(x);
-                    const yPred = out[0];
-                    const dLoss = (yPred - yTrue);
-                    const dW2 = new Array(this.w2.length).fill(0);
-                    const dB2 = new Array(this.b2.length).fill(0);
-                    for (let k = 0; k < OUTPUT_DIM; k++) {
-                        const grad = (k === 0) ? dLoss : 0;
-                        dB2[k] = grad;
-                        for (let j = 0; j < HIDDEN_DIM; j++) dW2[j * OUTPUT_DIM + k] = grad * h[j];
-                    }
-                    const dH = new Array(HIDDEN_DIM).fill(0);
-                    for (let j = 0; j < HIDDEN_DIM; j++) {
-                        let sum = 0;
-                        for (let k = 0; k < OUTPUT_DIM; k++) sum += this.w2[j * OUTPUT_DIM + k] * (k === 0 ? dLoss : 0);
-                        dH[j] = sum * (1 - h[j] * h[j]);
-                    }
-                    const dW1 = new Array(this.w1.length).fill(0);
-                    const dB1 = new Array(this.b1.length).fill(0);
-                    for (let j = 0; j < HIDDEN_DIM; j++) {
-                        dB1[j] = dH[j];
-                        for (let i = 0; i < INPUT_DIM; i++) dW1[i * HIDDEN_DIM + j] = dH[j] * x[i];
-                    }
-                    const lr = LR;
-                    for (let i = 0; i < this.w1.length; i++) this.w1[i] -= lr * dW1[i];
-                    for (let i = 0; i < this.b1.length; i++) this.b1[i] -= lr * dB1[i];
-                    for (let i = 0; i < this.w2.length; i++) this.w2[i] -= lr * dW2[i];
-                    for (let i = 0; i < this.b2.length; i++) this.b2[i] -= lr * dB2[i];
-                    return { loss: (yPred - yTrue) ** 2 };
-                }
-                trainStep(data) {
-                    let totalLoss = 0;
-                    for (const d of data) {
-                        const x = [d.x];
-                        const res = this.backward(x, d.y);
-                        totalLoss += res.loss;
-                    }
-                    return totalLoss / data.length;
-                }
-                predict(x) {
-                    const { out } = this.forward([x]);
-                    return out[0];
-                }
+        function renderCards(items) {
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="no-result">😅 没有找到匹配的资料，试试其他关键词吧</div>`;
+                totalSpan.textContent = '0';
+                return;
             }
 
-            // ---- 状态 ----
-            let net = new NeuralNet();
-            let lossHistory = [];
-            let iteration = 0;
-            let running = false;
-            let animId = null;
-            let speed = 5;
-
-            // ---- DOM ----
-            const netCanvas = document.getElementById('macroNetCanvas');
-            const lossCanvas = document.getElementById('macroLossCanvas');
-            const fitCanvas = document.getElementById('macroFitCanvas');
-            const ctxNet = netCanvas.getContext('2d');
-            const ctxLoss = lossCanvas.getContext('2d');
-            const ctxFit = fitCanvas.getContext('2d');
-
-            const btnStart = document.getElementById('macroBtnStart');
-            const btnReset = document.getElementById('macroBtnReset');
-            const speedSlider = document.getElementById('macroSpeed');
-            const speedLabel = document.getElementById('macroSpeedLabel');
-            const macroIter = document.getElementById('macroIter');
-            const macroLoss = document.getElementById('macroLoss');
-
-            // ---- 绘图 ----
-            function drawNetwork() {
-                const w = netCanvas.width,
-                    h = netCanvas.height;
-                ctxNet.clearRect(0, 0, w, h);
-                const layers = [
-                    { count: INPUT_DIM, label: '输入' },
-                    { count: HIDDEN_DIM, label: '隐藏' },
-                    { count: OUTPUT_DIM, label: '输出' }
-                ];
-                const layerSpacing = w * 0.28;
-                const startX = w * 0.1;
-                const nodeRadius = 10;
-                const positions = layers.map((layer, li) => {
-                    const x = startX + li * layerSpacing;
-                    const yStart = (h - (layer.count - 1) * 22) / 2;
-                    return layer.count === 1 ? [{ x, y: h / 2 }] :
-                        Array.from({ length: layer.count }, (_, i) => ({ x, y: yStart + i * 22 }));
-                });
-                for (let li = 0; li < layers.length - 1; li++) {
-                    const from = positions[li];
-                    const to = positions[li + 1];
-                    let weights;
-                    if (li === 0) weights = net.w1;
-                    else weights = net.w2;
-                    const wCols = to.length;
-                    for (let i = 0; i < from.length; i++) {
-                        for (let j = 0; j < to.length; j++) {
-                            const idx = i * wCols + j;
-                            const val = weights[idx] || 0;
-                            const norm = Math.max(-1, Math.min(1, val * 2.0));
-                            const r = norm > 0 ? Math.round(80 + 175 * norm) : Math.round(180 + 75 * norm);
-                            const g = norm > 0 ? Math.round(100 + 100 * norm) : Math.round(180 + 75 * (-norm));
-                            const b = norm > 0 ? 255 : Math.round(100 - 50 * (-norm));
-                            const alpha = 0.4 + 0.6 * Math.min(1, Math.abs(val) * 1.2);
-                            ctxNet.beginPath();
-                            ctxNet.moveTo(from[i].x, from[i].y);
-                            ctxNet.lineTo(to[j].x, to[j].y);
-                            ctxNet.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
-                            ctxNet.lineWidth = Math.max(0.5, 0.5 + Math.abs(val) * 10);
-                            ctxNet.stroke();
-                        }
-                    }
-                }
-                for (let li = 0; li < layers.length; li++) {
-                    const pos = positions[li];
-                    for (let i = 0; i < pos.length; i++) {
-                        const p = pos[i];
-                        let act = 0.5;
-                        if (trainData.length > 0) {
-                            const idx = iteration % trainData.length;
-                            const xVal = [trainData[idx].x];
-                            if (li === 0) act = (trainData[idx].x + 1.3) / 2.6;
-                            else if (li === 1) {
-                                const { h } = net.forward(xVal);
-                                act = (h[i] + 1) / 2;
-                            } else {
-                                const { out } = net.forward(xVal);
-                                act = (out[0] + 1.2) / 2.4;
-                            }
-                        }
-                        act = Math.max(0.05, Math.min(0.95, act));
-                        const gradient = ctxNet.createRadialGradient(p.x - 2, p.y - 2, 2, p.x, p.y, nodeRadius + 4);
-                        gradient.addColorStop(0, `rgba(255,255,255,${0.5+0.5*act})`);
-                        gradient.addColorStop(0.7, `rgba(100,200,255,${0.3+0.6*act})`);
-                        gradient.addColorStop(1, `rgba(20,80,200,${0.2+0.4*act})`);
-                        ctxNet.beginPath();
-                        ctxNet.arc(p.x, p.y, nodeRadius, 0, Math.PI * 2);
-                        ctxNet.fillStyle = gradient;
-                        ctxNet.shadowColor = 'rgba(79, 152, 255, 0.3)';
-                        ctxNet.shadowBlur = 12;
-                        ctxNet.fill();
-                        ctxNet.shadowBlur = 0;
-                        ctxNet.strokeStyle = '#2d3642';
-                        ctxNet.lineWidth = 1;
-                        ctxNet.stroke();
-                    }
-                }
-                ctxNet.fillStyle = '#8b949e';
-                ctxNet.font = '9px sans-serif';
-                ctxNet.textAlign = 'center';
-                ctxNet.textBaseline = 'top';
-                const titles = ['输入 (x)', '隐藏层 (8)', '输出 (y)'];
-                for (let li = 0; li < layers.length; li++) {
-                    ctxNet.fillText(titles[li], startX + li * layerSpacing, h - 18);
-                }
-            }
-
-            function drawLoss() {
-                const w = lossCanvas.width,
-                    h = lossCanvas.height;
-                ctxLoss.clearRect(0, 0, w, h);
-                if (lossHistory.length < 2) {
-                    ctxLoss.fillStyle = '#8b949e';
-                    ctxLoss.font = '14px sans-serif';
-                    ctxLoss.textAlign = 'center';
-                    ctxLoss.fillText('等待训练...', w / 2, h / 2 - 10);
-                    return;
-                }
-                const pad = 30,
-                    graphW = w - pad * 2,
-                    graphH = h - pad * 2;
-                const maxLoss = Math.max(0.1, Math.max(...lossHistory) * 1.2);
-                const minLoss = Math.min(0, Math.min(...lossHistory) * 0.8);
-                const range = maxLoss - minLoss || 0.1;
-                ctxLoss.strokeStyle = '#2d3642';
-                ctxLoss.lineWidth = 1;
-                ctxLoss.beginPath();
-                ctxLoss.moveTo(pad, pad);
-                ctxLoss.lineTo(pad, h - pad);
-                ctxLoss.lineTo(w - pad, h - pad);
-                ctxLoss.stroke();
-                const len = lossHistory.length;
-                const step = Math.max(1, Math.floor(len / 300));
-                ctxLoss.beginPath();
-                ctxLoss.strokeStyle = '#3d8bff';
-                ctxLoss.lineWidth = 2.5;
-                for (let i = 0; i < len; i += step) {
-                    const x = pad + (i / (len - 1 || 1)) * graphW;
-                    const y = pad + graphH - ((lossHistory[i] - minLoss) / range) * graphH;
-                    if (i === 0) ctxLoss.moveTo(x, y);
-                    else ctxLoss.lineTo(x, y);
-                }
-                ctxLoss.stroke();
-                const lastLoss = lossHistory[lossHistory.length - 1];
-                const lastX = pad + graphW;
-                const lastY = pad + graphH - ((lastLoss - minLoss) / range) * graphH;
-                ctxLoss.beginPath();
-                ctxLoss.arc(lastX, lastY, 4, 0, Math.PI * 2);
-                ctxLoss.fillStyle = '#ff7b72';
-                ctxLoss.fill();
-                ctxLoss.fillStyle = '#b1c4d9';
-                ctxLoss.font = '9px sans-serif';
-                ctxLoss.textAlign = 'right';
-                ctxLoss.textBaseline = 'bottom';
-                ctxLoss.fillText('当前', lastX - 6, lastY - 4);
-            }
-
-            function drawFit() {
-                const w = fitCanvas.width,
-                    h = fitCanvas.height;
-                ctxFit.clearRect(0, 0, w, h);
-                const pad = 30,
-                    graphW = w - pad * 2,
-                    graphH = h - pad * 2;
-                const xMin = -1.5,
-                    xMax = 1.5,
-                    yMin = -1.2,
-                    yMax = 1.2;
-
-                function mapX(x) { return pad + ((x - xMin) / (xMax - xMin)) * graphW; }
-
-                function mapY(y) { return pad + graphH - ((y - yMin) / (yMax - yMin)) * graphH; }
-                ctxFit.strokeStyle = '#2d3642';
-                ctxFit.lineWidth = 1;
-                ctxFit.beginPath();
-                ctxFit.moveTo(pad, pad);
-                ctxFit.lineTo(pad, h - pad);
-                ctxFit.lineTo(w - pad, h - pad);
-                ctxFit.stroke();
-                for (const d of trainData) {
-                    const cx = mapX(d.x),
-                        cy = mapY(d.y);
-                    ctxFit.beginPath();
-                    ctxFit.arc(cx, cy, 3.5, 0, Math.PI * 2);
-                    ctxFit.fillStyle = '#4c9aff';
-                    ctxFit.shadowColor = 'rgba(76, 154, 255, 0.3)';
-                    ctxFit.shadowBlur = 6;
-                    ctxFit.fill();
-                    ctxFit.shadowBlur = 0;
-                }
-                const steps = 50;
-                ctxFit.beginPath();
-                ctxFit.strokeStyle = '#ff7b72';
-                ctxFit.lineWidth = 2.5;
-                for (let i = 0; i <= steps; i++) {
-                    const x = xMin + (i / steps) * (xMax - xMin);
-                    const pred = net.predict(x);
-                    const cx = mapX(x),
-                        cy = mapY(pred);
-                    if (i === 0) ctxFit.moveTo(cx, cy);
-                    else ctxFit.lineTo(cx, cy);
-                }
-                ctxFit.stroke();
-                ctxFit.font = '9px sans-serif';
-                ctxFit.textAlign = 'left';
-                ctxFit.textBaseline = 'top';
-                ctxFit.fillStyle = '#4c9aff';
-                ctxFit.fillRect(w - 90, 10, 10, 10);
-                ctxFit.fillText('真实', w - 76, 8);
-                ctxFit.fillStyle = '#ff7b72';
-                ctxFit.fillRect(w - 90, 26, 10, 10);
-                ctxFit.fillText('预测', w - 76, 24);
-            }
-
-            function updateUI(loss) {
-                macroIter.textContent = iteration;
-                if (loss !== undefined && !isNaN(loss)) {
-                    macroLoss.textContent = loss.toFixed(6);
-                }
-                drawNetwork();
-                drawLoss();
-                drawFit();
-            }
-
-            // ---- 训练循环 ----
-            function trainOneStep() {
-                if (trainData.length === 0) return 0;
-                const shuffled = [...trainData];
-                for (let i = shuffled.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-                }
-                const loss = net.trainStep(shuffled);
-                lossHistory.push(loss);
-                if (lossHistory.length > 500) lossHistory.shift();
-                iteration++;
-                return loss;
-            }
-
-            function trainLoop() {
-                if (!running) return;
-                let totalLoss = 0;
-                for (let i = 0; i < speed; i++) {
-                    const loss = trainOneStep();
-                    if (!isNaN(loss)) totalLoss = loss;
-                }
-                updateUI(totalLoss);
-                animId = requestAnimationFrame(trainLoop);
-            }
-
-            function startTraining() {
-                if (running) return;
-                running = true;
-                btnStart.textContent = '⏸ 暂停';
-                if (animId) cancelAnimationFrame(animId);
-                trainLoop();
-            }
-
-            function pauseTraining() {
-                if (!running) return;
-                running = false;
-                btnStart.textContent = '▶ 继续';
-                if (animId) { cancelAnimationFrame(animId);
-                    animId = null; }
-            }
-
-            function toggleTraining() { running ? pauseTraining() : startTraining(); }
-
-            function resetAll() {
-                if (running) pauseTraining();
-                net = new NeuralNet();
-                lossHistory = [];
-                iteration = 0;
-                trainData = generateData(TRAIN_SAMPLES);
-                updateUI(undefined);
-                btnStart.textContent = '▶ 训练';
-                running = false;
-                if (animId) { cancelAnimationFrame(animId);
-                    animId = null; }
-            }
-
-            // ---- 事件绑定 ----
-            btnStart.addEventListener('click', toggleTraining);
-            btnReset.addEventListener('click', resetAll);
-            speedSlider.addEventListener('input', function() {
-                speed = parseInt(this.value);
-                speedLabel.textContent = speed;
-            });
-            speed = parseInt(speedSlider.value);
-            speedLabel.textContent = speed;
-            resetAll();
-        })();
-
-
-        // ================================================================
-        // 第二部分：微观单次迭代脚本 (完全隔离)
-        // ================================================================
-        (function() {
-            // ---- 固定参数 ----
-            const X_IN = 0.80;
-            const Y_TRUE = 0.30;
-            const LR = 0.20;
-
-            let w1 = 0.40,
-                b1 = 0.10;
-            let w2 = -0.20,
-                b2 = 0.20;
-            let w3 = 1.20,
-                b3 = 0.05;
-            let w4 = 0.50,
-                b4 = 0.00;
-
-            let state = {};
-            let currentStep = 0;
-            let autoTimer = null;
-            let isAuto = false;
-
-            const canvas = document.getElementById('microNetCanvas');
-            const ctx = canvas.getContext('2d');
-            const stepDesc = document.getElementById('microStepDesc');
-            const stepIndicator = document.getElementById('microStepIndicator');
-            const dispLoss = document.getElementById('microDispLoss');
-            const progressFill = document.getElementById('microProgressFill');
-            const btnPrev = document.getElementById('microBtnPrev');
-            const btnNext = document.getElementById('microBtnNext');
-            const btnAuto = document.getElementById('microBtnAuto');
-            const btnReset = document.getElementById('microBtnReset');
-
-            // ---- 计算 ----
-            function computeAll() {
-                try {
-                    const z1 = X_IN * w1 + b1;
-                    const a1 = Math.tanh(z1);
-                    const z2 = X_IN * w2 + b2;
-                    const a2 = Math.tanh(z2);
-                    const z_out = a1 * w3 + a2 * w4 + b3;
-                    const y_pred = z_out;
-                    const loss = (y_pred - Y_TRUE) ** 2;
-
-                    const dL_dy = 2 * (y_pred - Y_TRUE);
-                    const dL_dw3 = dL_dy * a1;
-                    const dL_dw4 = dL_dy * a2;
-                    const dL_db3 = dL_dy;
-                    const dL_db4 = 0;
-
-                    const dL_da1 = dL_dy * w3;
-                    const dL_da2 = dL_dy * w4;
-                    const dL_dz1 = dL_da1 * (1 - a1 * a1);
-                    const dL_dz2 = dL_da2 * (1 - a2 * a2);
-                    const dL_dw1 = dL_dz1 * X_IN;
-                    const dL_dw2 = dL_dz2 * X_IN;
-                    const dL_db1 = dL_dz1;
-                    const dL_db2 = dL_dz2;
-
-                    const new_w1 = w1 - LR * dL_dw1;
-                    const new_w2 = w2 - LR * dL_dw2;
-                    const new_w3 = w3 - LR * dL_dw3;
-                    const new_w4 = w4 - LR * dL_dw4;
-                    const new_b1 = b1 - LR * dL_db1;
-                    const new_b2 = b2 - LR * dL_db2;
-                    const new_b3 = b3 - LR * dL_db3;
-                    const new_b4 = b4 - LR * dL_db4;
-
-                    state = {
-                        z1,
-                        a1,
-                        z2,
-                        a2,
-                        z_out,
-                        y_pred,
-                        loss,
-                        dL_dy,
-                        dL_dw3,
-                        dL_dw4,
-                        dL_db3,
-                        dL_db4,
-                        dL_da1,
-                        dL_da2,
-                        dL_dz1,
-                        dL_dz2,
-                        dL_dw1,
-                        dL_dw2,
-                        dL_db1,
-                        dL_db2,
-                        new_w1,
-                        new_w2,
-                        new_w3,
-                        new_w4,
-                        new_b1,
-                        new_b2,
-                        new_b3,
-                        new_b4
-                    };
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-
-            // ---- 绘图 ----
-            function draw(step) {
-                try {
-                    const W = canvas.width,
-                        H = canvas.height;
-                    ctx.clearRect(0, 0, W, H);
-
-                    const nodes = {
-                        input: { x: 80, y: 200 },
-                        h1: { x: 280, y: 120 },
-                        h2: { x: 280, y: 320 },
-                        output: { x: 480, y: 220 }
-                    };
-                    const radius = 34;
-                    const isForward = step >= 1,
-                        isLoss = step >= 2,
-                        isBackward = step >= 3,
-                        isUpdate = step >= 4;
-
-                    const edges = [
-                        { from: 'input', to: 'h1', weight: w1, bias: b1, label: 'w1', id: 'e1' },
-                        { from: 'input', to: 'h2', weight: w2, bias: b2, label: 'w2', id: 'e2' },
-                        { from: 'h1', to: 'output', weight: w3, bias: b3, label: 'w3', id: 'e3' },
-                        { from: 'h2', to: 'output', weight: w4, bias: b4, label: 'w4', id: 'e4' }
-                    ];
-
-                    edges.forEach(edge => {
-                        const from = nodes[edge.from];
-                        const to = nodes[edge.to];
-                        const midX = (from.x + to.x) / 2;
-                        const midY = (from.y + to.y) / 2;
-
-                        let color = '#2d3642',
-                            lineWidth = 2,
-                            dash = [];
-                        if (isForward && !isBackward && !isUpdate) { color = '#4c9aff';
-                            lineWidth = 3.5; }
-                        if (isBackward && step >= 3 && !isUpdate) { color = '#ffb347';
-                            lineWidth = 3.5;
-                            dash = [6, 4]; }
-                        if (isUpdate) { color = '#7ee787';
-                            lineWidth = 4;
-                            dash = []; }
-
-                        ctx.beginPath();
-                        ctx.moveTo(from.x, from.y);
-                        ctx.lineTo(to.x, to.y);
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = lineWidth;
-                        ctx.setLineDash(dash);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-
-                        let labelText = `${edge.label}=${(edge.weight || 0).toFixed(3)}`;
-                        let labelColor = '#8b949e';
-                        if (isBackward && !isUpdate) {
-                            let grad = 0;
-                            if (edge.id === 'e1') grad = state.dL_dw1 || 0;
-                            else if (edge.id === 'e2') grad = state.dL_dw2 || 0;
-                            else if (edge.id === 'e3') grad = state.dL_dw3 || 0;
-                            else if (edge.id === 'e4') grad = state.dL_dw4 || 0;
-                            labelText = `∇w=${grad.toFixed(4)}`;
-                            labelColor = '#ffb347';
-                        }
-                        if (isUpdate) {
-                            let newVal = 0;
-                            if (edge.id === 'e1') newVal = state.new_w1 || 0;
-                            else if (edge.id === 'e2') newVal = state.new_w2 || 0;
-                            else if (edge.id === 'e3') newVal = state.new_w3 || 0;
-                            else if (edge.id === 'e4') newVal = state.new_w4 || 0;
-                            labelText = `w'=${newVal.toFixed(3)}`;
-                            labelColor = '#7ee787';
-                        }
-
-                        ctx.fillStyle = labelColor;
-                        ctx.font = 'bold 11px "Courier New", monospace';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-                        const offX = (to.x - from.x) * 0.15;
-                        const offY = (to.y - from.y) * 0.15;
-                        ctx.fillText(labelText, midX + offX, midY - 8 + offY);
-
-                        let biasText = `b=${(edge.bias || 0).toFixed(3)}`;
-                        if (isUpdate) {
-                            let newB = 0;
-                            if (edge.id === 'e1') newB = state.new_b1 || 0;
-                            else if (edge.id === 'e2') newB = state.new_b2 || 0;
-                            else if (edge.id === 'e3') newB = state.new_b3 || 0;
-                            else if (edge.id === 'e4') newB = state.new_b4 || 0;
-                            biasText = `b'=${newB.toFixed(3)}`;
-                        }
-                        ctx.fillStyle = '#6e7681';
-                        ctx.font = '9px monospace';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(biasText, midX - offX, midY + 6 - offY);
-                    });
-
-                    function drawArrow(from, to, color, offset = 10) {
-                        const angle = Math.atan2(to.y - from.y, to.x - from.x);
-                        const arrowSize = 12;
-                        const startX = to.x - offset * Math.cos(angle);
-                        const startY = to.y - offset * Math.sin(angle);
-                        ctx.beginPath();
-                        ctx.moveTo(startX, startY);
-                        ctx.lineTo(startX - arrowSize * Math.cos(angle - 0.5), startY - arrowSize * Math.sin(angle -
-                        0.5));
-                        ctx.moveTo(startX, startY);
-                        ctx.lineTo(startX - arrowSize * Math.cos(angle + 0.5), startY - arrowSize * Math.sin(angle +
-                        0.5));
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = 2.5;
-                        ctx.stroke();
-                    }
-                    if (isForward && !isBackward && !isUpdate) edges.forEach(e => drawArrow(nodes[e.from], nodes[e
-                        .to], '#4c9aff', 18));
-                    if (isBackward && step >= 3 && !isUpdate) edges.forEach(e => drawArrow(nodes[e.to], nodes[e
-                        .from], '#ffb347', 18));
-                    if (isUpdate) edges.forEach(e => drawArrow(nodes[e.from], nodes[e.to], '#7ee787', 18));
-
-                    const nodeKeys = ['input', 'h1', 'h2', 'output'];
-                    const nodeLabels = {
-                        input: `x = ${X_IN.toFixed(2)}`,
-                        h1: `h₁`,
-                        h2: `h₂`,
-                        output: `y_pred`
-                    };
-                    nodeKeys.forEach(key => {
-                        const pos = nodes[key];
-                        let value = '',
-                            valColor = '#e6edf3';
-                        if (key === 'input') value = X_IN.toFixed(2);
-                        else if (key === 'h1') {
-                            if (isForward) value = (state.a1 || 0).toFixed(3);
-                            else value = '—';
-                            if (isBackward && !isUpdate) { value = `δ₁=${(state.dL_dz1 || 0).toFixed(3)}`;
-                                valColor = '#ffb347'; }
-                            if (isUpdate) { value = (state.a1 || 0).toFixed(3);
-                                valColor = '#7ee787'; }
-                        } else if (key === 'h2') {
-                            if (isForward) value = (state.a2 || 0).toFixed(3);
-                            else value = '—';
-                            if (isBackward && !isUpdate) { value = `δ₂=${(state.dL_dz2 || 0).toFixed(3)}`;
-                                valColor = '#ffb347'; }
-                            if (isUpdate) { value = (state.a2 || 0).toFixed(3);
-                                valColor = '#7ee787'; }
-                        } else if (key === 'output') {
-                            if (isForward) value = (state.y_pred || 0).toFixed(3);
-                            else value = '—';
-                            if (isLoss && !isBackward) { value = `pred=${(state.y_pred || 0).toFixed(3)}`;
-                                valColor = '#ff7b72'; }
-                            if (isBackward) { value = `pred=${(state.y_pred || 0).toFixed(3)}`;
-                                valColor = '#ffb347'; }
-                            if (isUpdate) { value = (state.y_pred || 0).toFixed(3);
-                                valColor = '#7ee787'; }
-                        }
-                        let fillColor = '#1c2330';
-                        if (key === 'output' && isLoss) fillColor = '#2d1a1a';
-                        if ((key === 'h1' || key === 'h2') && isForward) fillColor = '#1a2633';
-                        ctx.shadowBlur = 0;
-                        ctx.beginPath();
-                        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-                        ctx.fillStyle = fillColor;
-                        ctx.fill();
-                        ctx.strokeStyle = '#2d3642';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        if (isLoss && key === 'output') { ctx.strokeStyle = '#ff7b72';
-                            ctx.lineWidth = 3;
-                            ctx.stroke(); }
-                        ctx.fillStyle = '#8b949e';
-                        ctx.font = '11px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-                        ctx.fillText(nodeLabels[key], pos.x, pos.y - radius - 6);
-                        ctx.fillStyle = valColor;
-                        ctx.font = 'bold 12px "Courier New", monospace';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(value, pos.x, pos.y + 2);
-                    });
-                    if (isLoss) {
-                        ctx.fillStyle = '#ff7b72';
-                        ctx.font = 'bold 14px monospace';
-                        ctx.textAlign = 'left';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(`Loss = ${(state.loss || 0).toFixed(5)}`, 420, 20);
-                        ctx.fillStyle = '#8b949e';
-                        ctx.font = '12px sans-serif';
-                        ctx.fillText(`y_true = ${Y_TRUE.toFixed(2)}`, 420, 45);
-                    }
-                    updateDescription(step);
-                } catch (e) {
-                    console.error('绘图错误:', e);
-                }
-            }
-
-            // ---- 更新描述 ----
-            function updateDescription(step) {
-                const yp = (state.y_pred || 0).toFixed(4);
-                const ls = (state.loss || 0).toFixed(5);
-                const d1 = (state.dL_dw1 || 0).toFixed(4);
-                const d2 = (state.dL_dw2 || 0).toFixed(4);
-                const d3 = (state.dL_dw3 || 0).toFixed(4);
-                const d4 = (state.dL_dw4 || 0).toFixed(4);
-                const db1 = (state.dL_db1 || 0).toFixed(4);
-                const db2 = (state.dL_db2 || 0).toFixed(4);
-                const db3 = (state.dL_db3 || 0).toFixed(4);
-                const db4 = (state.dL_db4 || 0).toFixed(4);
-                const nw1 = (state.new_w1 || 0).toFixed(3);
-                const nw3 = (state.new_w3 || 0).toFixed(3);
-
-                const stepsData = [{
-                    title: '⏳ 初始状态 (初始化)',
-                    badge: '步骤 0 / 4',
-                    text: '网络权重在训练前必须赋值。真实场景下用<strong>随机初始化</strong>（如Xavier）打破对称性。',
-                    formula: '演示初始值: w1=0.40, w2=-0.20, w3=1.20, w4=0.50 (手动指定以产生明显误差)',
-                    insight: '💡 如果所有权重初始为0，同一层所有神经元梯度相同，网络将无法学习不同特征。'
-                }, {
-                    title: '➡️ 前向传播 (Forward)',
-                    badge: '步骤 1 / 4',
-                    text: '输入 x=0.80 依次经过加权和 tanh 激活，得到预测值。',
-                    formula: `计算: z1=0.8*0.4+0.1=0.42, a1=tanh(0.42)=0.397\nz2=0.8*(-0.2)+0.2=0.04, a2=tanh(0.04)=0.040\ny_pred = a1*1.2 + a2*0.5 + 0.05 = ${yp}`,
-                    insight: '💡 前向传播只是“算一遍”，不涉及任何调整。'
-                }, {
-                    title: '📉 计算损失 (Loss)',
-                    badge: '步骤 2 / 4',
-                    text: '用均方误差（MSE）衡量预测与目标的差距。',
-                    formula: `Loss = (${yp} - 0.30)² = ${ls}`,
-                    insight: '💡 Loss 是一个标量（单一数值），它指导后续所有梯度的方向。'
-                }, {
-                    title: '🔄 反向传播 (梯度计算)',
-                    badge: '步骤 3 / 4',
-                    text: '从输出层反向，利用链式法则计算每个参数的偏导数（梯度）。',
-                    formula: `权重梯度: ∇w1=${d1}, ∇w2=${d2}, ∇w3=${d3}, ∇w4=${d4}\n偏置梯度: ∇b1=${db1}, ∇b2=${db2}, ∇b3=${db3}, ∇b4=${db4}`,
-                    insight: `🔍 <strong>为什么偏置梯度不同？</strong>\n• ∇b3 = 输出误差 (${db3})\n• ∇b1 = 误差 × w3 × tanh'(z1) = ${db1}\n• ∇b2 = 误差 × w4 × tanh'(z2) = ${db2}\n因为 w3≠w4 且激活值不同，所以梯度不同。\n🔍 <strong>为什么同时更新？</strong>\n所有梯度都是基于<b>当前旧权重</b>一次性算出的，必须同时用它们去更新，否则算法失效。`
-                }, {
-                    title: '⬇️ 梯度下降 (参数更新)',
-                    badge: '步骤 4 / 4',
-                    text: '沿梯度的反方向移动一步，步长由学习率 η 控制。',
-                    formula: `w1' = 0.40 - 0.2*(${d1}) = ${nw1}\nw3' = 1.20 - 0.2*(${d3}) = ${nw3}`,
-                    insight: `🔍 <strong>学习率 η=0.2 的影响：</strong>\n• 太大（如1.0）：步子过大，可能越过最低点（Loss震荡）。\n• 太小（如0.01）：收敛极慢。\n• 0.2 在演示中能让你看到明显变化且不崩坏。`
-                }];
-
-                const data = stepsData[step] || stepsData[0];
-                stepDesc.innerHTML = `
-                    <h4>${data.title} <span class="tag">${data.badge}</span></h4>
-                    <p>${data.text}</p>
-                    <div class="formula-block" style="font-size:0.85rem;">${data.formula.replace(/\n/g, '<br>')}</div>
-                    <div class="insight-box">${data.insight}</div>
-                    <div class="value-grid-mini">
-                        <div class="item"><span>输入 x</span><span class="num">0.80</span></div>
-                        <div class="item"><span>目标 y_true</span><span class="num">0.30</span></div>
-                        <div class="item"><span>当前损失</span><span class="num">${step >= 2 ? ls : '—'}</span></div>
-                        <div class="item"><span>学习率 η</span><span class="num">0.20</span></div>
+            let html = '';
+            items.forEach(item => {
+                html += `
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-icon">${item.icon || '📄'}</span>
+                            <span class="card-category">${item.category || '未分类'}</span>
+                        </div>
+                        <div class="card-title">${item.title}</div>
+                        <div class="card-desc">${item.desc || '暂无描述'}</div>
+                        <div class="card-footer">
+                            <span class="card-date">📅 ${item.date || ''}</span>
+                            <a href="${item.url}" class="card-link" target="_blank">查看 →</a>
+                        </div>
                     </div>
                 `;
+            });
 
-                dispLoss.textContent = step >= 2 ? ls : '—';
-                stepIndicator.textContent = `步骤 ${step} / 4`;
-                progressFill.style.width = `${(step / 4) * 100}%`;
-                btnPrev.disabled = step <= 0;
-                btnNext.disabled = step >= 4;
+            grid.innerHTML = html;
+            totalSpan.textContent = items.length;
+        }
+
+        function filterCards() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!keyword) {
+                currentData = [...data];
+            } else {
+                currentData = data.filter(item =>
+                    item.title.toLowerCase().includes(keyword) ||
+                    (item.desc && item.desc.toLowerCase().includes(keyword)) ||
+                    (item.category && item.category.toLowerCase().includes(keyword))
+                );
             }
+            renderCards(currentData);
+        }
 
-            // ---- 控制 ----
-            function goToStep(step) {
-                if (step < 0) step = 0;
-                if (step > 4) step = 4;
-                currentStep = step;
-                draw(step);
-            }
-
-            function nextStep() { if (currentStep < 4) { goToStep(currentStep + 1); return true; } return false; }
-
-            function prevStep() { if (currentStep > 0) { goToStep(currentStep - 1); return true; } return false; }
-
-            function resetAll() {
-                if (autoTimer) { clearInterval(autoTimer);
-                    autoTimer = null;
-                    isAuto = false;
-                    btnAuto.textContent = '▶ 自动演示'; }
-                w1 = 0.40;
-                b1 = 0.10;
-                w2 = -0.20;
-                b2 = 0.20;
-                w3 = 1.20;
-                b3 = 0.05;
-                w4 = 0.50;
-                b4 = 0.00;
-                computeAll();
-                goToStep(0);
-            }
-
-            function toggleAuto() {
-                if (isAuto) {
-                    clearInterval(autoTimer);
-                    autoTimer = null;
-                    isAuto = false;
-                    btnAuto.textContent = '▶ 自动演示';
-                    return;
-                }
-                if (currentStep >= 4) resetAll();
-                isAuto = true;
-                btnAuto.textContent = '⏹ 停止';
-                autoTimer = setInterval(() => {
-                    if (!nextStep()) {
-                        clearInterval(autoTimer);
-                        autoTimer = null;
-                        isAuto = false;
-                        btnAuto.textContent = '▶ 自动演示';
-                    }
-                }, 1400);
-            }
-
-            // ---- 初始化 ----
-            function init() {
-                computeAll();
-                goToStep(0);
-                btnNext.addEventListener('click', nextStep);
-                btnPrev.addEventListener('click', prevStep);
-                btnReset.addEventListener('click', resetAll);
-                btnAuto.addEventListener('click', toggleAuto);
-            }
-            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-            else init();
-        })();
+        // 初始渲染
+        renderCards(data);
     </script>
 </body>
 </html>
